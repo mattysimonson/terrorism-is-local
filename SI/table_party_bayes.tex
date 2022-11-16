@@ -1,0 +1,92 @@
+\begin{table}[!h]
+
+\caption{\label{tab:bayes_party}Bayesian models with party interactions (Republican defined as 4 or higher where 1 is `strong Democrat' and 7 is `strong Republican')}
+\centering
+\fontsize{9}{11}\selectfont
+\begin{tabular}[t]{lrllrrrl}
+\toprule
+Parameter & Median & 95\% HDI & 90\% HDI & pd & ESS & rhat & Hypothesis\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: illegal immigration problem in US}}\\
+\hline
+\hspace{1em}(intercept) & 3.05 & (2.92, 3.20) & (2.93, 3.16) & 1.00 & 797 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}treatment & -0.05 & (-0.30, 0.22) & (-0.26, 0.19) & 0.63 & 3123 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}republican & 0.34 & (0.29, 0.39) & (0.30, 0.38) & 1.00 & 1864 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{0.39} & \textbf{(0.08, 0.74)} & \textbf{(0.12, 0.67)} & \textbf{0.99} & \textbf{3307} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.55 & (0.54, 0.57) & (0.54, 0.57) & 1.00 & 2571 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: illegal immigration problem in community}}\\
+\hline
+\hspace{1em}(intercept) & 2.11 & (2.06, 2.17) & (2.07, 2.16) & 1.00 & 1261 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}treatment & -0.21 & (-0.50, 0.10) & (-0.45, 0.05) & 0.92 & 2831 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}republican & 0.07 & (0.01, 0.13) & (0.02, 0.12) & 0.99 & 1865 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{0.43} & \textbf{(0.08, 0.85)} & \textbf{(0.12, 0.75)} & \textbf{0.98} & \textbf{2906} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.62 & (0.61, 0.64) & (0.61, 0.63) & 1.00 & 2399 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: restrict legal immigration}}\\
+\hline
+\hspace{1em}(intercept) & 2.64 & (2.55, 2.74) & (2.57, 2.72) & 1.00 & 1312 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}treatment & -0.15 & (-0.46, 0.20) & (-0.41, 0.15) & 0.80 & 3020 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}republican & 0.32 & (0.25, 0.39) & (0.26, 0.38) & 1.00 & 1921 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{0.34} & \textbf{(-0.07, 0.81)} & \textbf{(-0.03, 0.70)} & \textbf{0.94} & \textbf{3054} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.69 & (0.67, 0.71) & (0.67, 0.70) & 1.00 & 2392 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: party (Dem.–Rep. scale)}}\\
+\hline
+\hspace{1em}(intercept) & 2.65 & (2.60, 2.70) & (2.61, 2.69) & 1.00 & 869 & 1.01 & H2: Righward Shift\\
+\hspace{1em}treatment & 0.31 & (0.04, 0.57) & (0.10, 0.54) & 0.99 & 4555 & 1.00 & H2: Righward Shift\\
+\hspace{1em}republican & 3.19 & (3.13, 3.24) & (3.14, 3.23) & 1.00 & 1234 & 1.00 & H2: Righward Shift\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.57} & \textbf{(-0.92, -0.25)} & \textbf{(-0.86, -0.30)} & \textbf{1.00} & \textbf{4286} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.60 & (0.59, 0.61) & (0.59, 0.61) & 1.00 & 2370 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: ideology (Lib.–Con. scale)}}\\
+\hline
+\hspace{1em}(intercept) & 3.40 & (3.35, 3.46) & (3.36, 3.45) & 1.00 & 834 & 1.00 & H2: Righward Shift\\
+\hspace{1em}treatment & -0.02 & (-0.31, 0.31) & (-0.27, 0.24) & 0.56 & 3352 & 1.00 & H2: Righward Shift\\
+\hspace{1em}republican & 1.35 & (1.30, 1.42) & (1.31, 1.40) & 1.00 & 1107 & 1.00 & H2: Righward Shift\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.02} & \textbf{(-0.43, 0.35)} & \textbf{(-0.36, 0.30)} & \textbf{0.55} & \textbf{3568} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.71 & (0.70, 0.72) & (0.70, 0.72) & 1.00 & 2620 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: Obama approval}}\\
+\hline
+\hspace{1em}(intercept) & 0.30 & (0.17, 0.44) & (0.19, 0.41) & 1.00 & 687 & 1.00 & H2: Righward Shift\\
+\hspace{1em}treatment & 0.10 & (-0.15, 0.36) & (-0.13, 0.30) & 0.78 & 3729 & 1.00 & H2: Righward Shift\\
+\hspace{1em}republican & -0.81 & (-0.85, -0.75) & (-0.85, -0.77) & 1.00 & 1605 & 1.00 & H2: Righward Shift\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.21} & \textbf{(-0.53, 0.11)} & \textbf{(-0.49, 0.05)} & \textbf{0.90} & \textbf{3969} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.56 & (0.55, 0.57) & (0.55, 0.57) & 1.00 & 3841 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: political participation}}\\
+\hline
+\hspace{1em}(intercept) & 0.34 & (0.29, 0.38) & (0.30, 0.38) & 1.00 & 1042 & 1.00 & H3: Political Engagement\\
+\hspace{1em}treatment & -0.10 & (-0.32, 0.13) & (-0.30, 0.08) & 0.82 & 2609 & 1.00 & H3: Political Engagement\\
+\hspace{1em}republican & -0.05 & (-0.09, -0.02) & (-0.08, -0.02) & 1.00 & 1601 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{0.07} & \textbf{(-0.21, 0.37)} & \textbf{(-0.19, 0.29)} & \textbf{0.67} & \textbf{2435} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.49 & (0.48, 0.50) & (0.48, 0.50) & 1.00 & 3188 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: interest in politics}}\\
+\hline
+\hspace{1em}(intercept) & 2.63 & (2.55, 2.71) & (2.57, 2.70) & 1.00 & 1037 & 1.00 & H3: Political Engagement\\
+\hspace{1em}treatment & 0.17 & (-0.09, 0.41) & (-0.03, 0.39) & 0.91 & 5240 & 1.00 & H3: Political Engagement\\
+\hspace{1em}republican & 0.15 & (0.11, 0.19) & (0.11, 0.18) & 1.00 & 2752 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.19} & \textbf{(-0.51, 0.13)} & \textbf{(-0.47, 0.06)} & \textbf{0.88} & \textbf{5736} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.56 & (0.55, 0.57) & (0.55, 0.57) & 1.00 & 4032 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: discuss politics and current events with family}}\\
+\hline
+\hspace{1em}(intercept) & 3.72 & (3.37, 4.05) & (3.46, 3.98) & 1.00 & 929 & 1.00 & H3: Political Engagement\\
+\hspace{1em}treatment & 0.23 & (-0.25, 0.70) & (-0.16, 0.62) & 0.84 & 3113 & 1.00 & H3: Political Engagement\\
+\hspace{1em}republican & 0.40 & (0.27, 0.54) & (0.27, 0.50) & 1.00 & 1646 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.06} & \textbf{(-0.68, 0.53)} & \textbf{(-0.55, 0.46)} & \textbf{0.57} & \textbf{3357} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 1.07 & (1.04, 1.10) & (1.05, 1.10) & 1.00 & 2708 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: discuss politics and current events with friends}}\\
+\hline
+\hspace{1em}(intercept) & 4.22 & (3.54, 4.88) & (3.73, 4.78) & 1.00 & 1426 & 1.00 & H3: Political Engagement\\
+\hspace{1em}treatment & 0.21 & (-0.27, 0.68) & (-0.17, 0.64) & 0.79 & 4491 & 1.00 & H3: Political Engagement\\
+\hspace{1em}republican & 0.21 & (0.07, 0.34) & (0.10, 0.33) & 1.00 & 2229 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{treatment:republican} & \textbf{-0.21} & \textbf{(-0.88, 0.40)} & \textbf{(-0.75, 0.32)} & \textbf{0.75} & \textbf{4456} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 1.15 & (1.12, 1.18) & (1.12, 1.18) & 1.00 & 3547 & 1.00 & H3: Political Engagement\\
+\bottomrule
+\end{tabular}
+\end{table}

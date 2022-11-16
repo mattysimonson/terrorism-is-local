@@ -1,0 +1,29 @@
+
+\begin{table}[htbp]
+   \caption{\label{tab:first_diff_FE_tr} Models for non-local students comparing pre- and post-attack outcomes (frequentist)}
+   \centering
+   \begin{tabular}{lcccccccccc}
+      \tabularnewline \midrule \midrule
+      Hypothesis: & \multicolumn{3}{c}{H1: Nativist Backlash} & \multicolumn{3}{c}{H2: Righward Shift} & \multicolumn{4}{c}{H3: Political Engagement} \\ 
+      Dependent Variables: & illegal imm us & illegal imm cmty & legal imm    & party        & ideology    & obama        & interest     & participation & talk family & talk friends\\  
+      Model:               & (1)            & (2)              & (3)          & (4)          & (5)         & (6)          & (7)          & (8)           & (9)         & (10)\\  
+      \midrule
+      \emph{Variables}\\
+      wave\_tr             & 0.04           & 0.03             & -0.10$^{**}$ & -0.04$^{**}$ & -0.04$^{*}$ & 0.23$^{***}$ & 0.18$^{***}$ & -0.05         & -0.005      & 0.22$^{***}$\\   
+                           & (0.04)         & (0.04)           & (0.04)       & (0.02)       & (0.03)      & (0.03)       & (0.03)       & (0.04)        & (0.04)      & (0.04)\\   
+      \midrule
+      \emph{Fixed-effects}\\
+      id                   & Yes            & Yes              & Yes          & Yes          & Yes         & Yes          & Yes          & Yes           & Yes         & Yes\\  
+      \midrule
+      \emph{Fit statistics}\\
+      Observations         & 1,253          & 1,229            & 1,247        & 1,284        & 1,374       & 1,267        & 1,294        & 1,275         & 1,285       & 1,279\\  
+      Squared Correlation  & 0.826          & 0.806            & 0.798        & 0.972        & 0.928       & 0.906        & 0.854        & 0.815         & 0.829       & 0.796\\  
+      Pseudo R$^2$         & 0.609          & 0.583            & 0.567        & 1.23         & 0.905       & 0.798        & 0.683        & 0.561         & 0.630       & 0.567\\  
+      BIC                  & 6,543.0        & 6,533.1          & 6,645.3      & 4,371.4      & 6,053.1     & 5,932.1      & 6,422.8      & 6,869.4       & 6,573.7     & 6,774.1\\  
+      \midrule \midrule
+      \multicolumn{11}{l}{\emph{Clustered (id) standard-errors in parentheses}}\\
+      \multicolumn{11}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \end{tabular}
+\end{table}
+
+

@@ -1,0 +1,30 @@
+
+\begin{table}[htbp]
+   \caption{\label{tab:same_year} Same-Year Effects: Subsetting on observations in the same school year as the attack (frequentist)}
+   \centering
+   \begin{tabular}{lcccccccccc}
+      \tabularnewline \midrule \midrule
+      Hypothesis: & \multicolumn{3}{c}{H1: Nativist Backlash} & \multicolumn{3}{c}{H2: Righward Shift} & \multicolumn{4}{c}{H3: Political Engagement} \\ 
+      Dependent Variables: & illegal imm us & illegal imm cmty & legal imm & party   & ideology & obama   & interest & participation & talk family & talk friends\\  
+      Model:               & (1)            & (2)              & (3)       & (4)     & (5)      & (6)     & (7)      & (8)           & (9)         & (10)\\  
+      \midrule
+      \emph{Variables}\\
+      treatment            & 0.21           & 0.01             & 0.10      & 0.04    & 0.06     & -0.07   & 0.17     & -0.13         & 0.11        & 0.04\\   
+                           & (0.13)         & (0.13)           & (0.12)    & (0.08)  & (0.08)   & (0.07)  & (0.12)   & (0.12)        & (0.11)      & (0.12)\\   
+      \midrule
+      \emph{Fixed-effects}\\
+      Wave                 & Yes            & Yes              & Yes       & Yes     & Yes      & Yes     & Yes      & Yes           & Yes         & Yes\\  
+      id                   & Yes            & Yes              & Yes       & Yes     & Yes      & Yes     & Yes      & Yes           & Yes         & Yes\\  
+      \midrule
+      \emph{Fit statistics}\\
+      Observations         & 1,376          & 1,351            & 1,369     & 1,406   & 1,503    & 1,390   & 1,417    & 1,395         & 1,408       & 1,401\\  
+      Squared Correlation  & 0.827          & 0.808            & 0.807     & 0.969   & 0.928    & 0.911   & 0.856    & 0.816         & 0.835       & 0.802\\  
+      Pseudo R$^2$         & 0.611          & 0.587            & 0.578     & 1.19    & 0.905    & 0.817   & 0.685    & 0.568         & 0.640       & 0.577\\  
+      BIC                  & 7,262.3        & 7,247.5          & 7,340.8   & 5,017.6 & 6,691.7  & 6,516.3 & 7,121.5  & 7,563.0       & 7,256.9     & 7,471.4\\  
+      \midrule \midrule
+      \multicolumn{11}{l}{\emph{Clustered (Wave \& id) standard-errors in parentheses}}\\
+      \multicolumn{11}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \end{tabular}
+\end{table}
+
+

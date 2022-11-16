@@ -1,0 +1,29 @@
+
+\begin{table}[htbp]
+   \caption{\label{tab:net_bin} Fixed effects models regressing existance of each type of network tie on treatment}
+   \centering
+   \begin{tabular}{lcccccc}
+      \tabularnewline \midrule \midrule
+                          & Esteem         & Time          & Non-negative & Friend        & Aristotelian   & Political \\   
+      Model:              & (1)            & (2)           & (3)          & (4)           & (5)            & (6)\\  
+      \midrule
+      \emph{Variables}\\
+      treatment           & 0.0302$^{***}$ & 0.0687$^{**}$ & -0.0192      & 0.0659$^{**}$ & 0.1196$^{***}$ & -0.0062\\   
+                          & (0.0092)       & (0.0300)      & (0.0296)     & (0.0332)      & (0.0401)       & (0.0448)\\   
+      \midrule
+      \emph{Fixed-effects}\\
+      chapter             & Yes            & Yes           & Yes          & Yes           & Yes            & Yes\\  
+      year                & Yes            & Yes           & Yes          & Yes           & Yes            & Yes\\  
+      \midrule
+      \emph{Fit statistics}\\
+      Observations        & 6,176          & 6,176         & 6,176        & 6,176         & 6,176          & 6,176\\  
+      Squared Correlation & 0.01068        & 0.01903       & 0.02411      & 0.01881       & 0.03175        & 0.04307\\  
+      Pseudo R$^2$        & -0.00838       & 0.01983       & 0.03641      & 0.01696       & 0.02250        & 0.03054\\  
+      BIC                 & -7,791.4       & 6,058.3       & 4,181.7      & 6,989.3       & 8,851.5        & 8,822.5\\  
+      \midrule \midrule
+      \multicolumn{7}{l}{\emph{Clustered (chapter\_year) standard-errors in parentheses}}\\
+      \multicolumn{7}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \end{tabular}
+\end{table}
+
+

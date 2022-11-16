@@ -1,0 +1,29 @@
+
+\begin{table}[htbp]
+   \caption{\label{tab:net_count} Fixed effects models regressing number of each type of network tie on treatment}
+   \centering
+   \begin{tabular}{lcccccc}
+      \tabularnewline \midrule \midrule
+                          & Esteem   & Time         & Non-negative & Friend       & Aristotelian  & Political \\   
+      Model:              & (1)      & (2)          & (3)          & (4)          & (5)           & (6)\\  
+      \midrule
+      \emph{Variables}\\
+      treatment           & 1.351    & 0.9160$^{*}$ & 3.414        & 1.263$^{**}$ & 0.5942$^{**}$ & 0.4970$^{***}$\\   
+                          & (1.222)  & (0.5190)     & (2.270)      & (0.4936)     & (0.2580)      & (0.1707)\\   
+      \midrule
+      \emph{Fixed-effects}\\
+      chapter             & Yes      & Yes          & Yes          & Yes          & Yes           & Yes\\  
+      year                & Yes      & Yes          & Yes          & Yes          & Yes           & Yes\\  
+      \midrule
+      \emph{Fit statistics}\\
+      Observations        & 6,176    & 6,176        & 6,176        & 6,176        & 6,176         & 6,176\\  
+      Squared Correlation & 0.16576  & 0.04302      & 0.90436      & 0.03815      & 0.05744       & 0.06015\\  
+      Pseudo R$^2$        & 0.02252  & 0.00717      & 0.25805      & 0.00707      & 0.01301       & 0.01529\\  
+      BIC                 & 48,766.6 & 37,773.6     & 41,873.0     & 33,954.6     & 27,911.7      & 24,867.8\\  
+      \midrule \midrule
+      \multicolumn{7}{l}{\emph{Clustered (chapter\_year) standard-errors in parentheses}}\\
+      \multicolumn{7}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \end{tabular}
+\end{table}
+
+

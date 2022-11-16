@@ -1,0 +1,895 @@
+---
+title: "Terrorism Replication"
+author: "Matthew Simonson"
+date: "7/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+### Packages
+```{r, echo=F}
+cat("\14")
+rm(list = ls())
+library(tidyverse)
+#library(ggplot2)
+#library(forcats)
+#library(purrr)
+library(data.table)
+library(parameters)
+library(viridisLite)
+library(bayestestR)
+library(insight)
+library(emmeans)
+library(fixest)
+#library(modelsummary)
+library(sjPlot)
+library(gtsummary)
+#library(gt)
+#library(texreg)
+library(parallel)
+library(kableExtra)
+library(brms)
+```
+
+### Settings
+```{r}
+setFixest_fml(..outcomes = ~c(illegal_imm_prob_us,
+                              illegal_imm_prob_cmty,
+                              restrict_legal_imm,
+                              partyid,
+                              ideology,
+                              obama_appr,
+                              political_interest,
+                              participation_index,
+                              political_talk_with_family,
+                              political_talk_with_friends),
+              
+              ..outcomes17 = ~c(illegal_imm_prob_us,
+                              illegal_imm_prob_cmty,
+                              #restrict_legal_imm,
+                              partyid,
+                              ideology,
+                              #obama_appr,
+                              political_interest,
+                              participation_index,
+                              political_talk_with_family,
+                              political_talk_with_friends))
+
+setFixest_dict(c("tr" = "treatment",
+                 "illegal_imm_prob_us" = "illegal imm us",
+                 "illegal_imm_prob_cmty" = "illegal imm cmty",
+                 "restrict_legal_imm" = "legal imm",
+                 "obama_appr" = "obama",
+                 "partyid" = "party",
+                 "political_interest" = "interest",
+                 "participation_index" = "participation",
+                 "political_talk_with_family" = "talk family",
+                 "political_talk_with_friends" = "talk friends",
+                 "republican_3" = "Republican",
+                 "republican" = "Republican",
+                 "republican_5" = "Republican",
+                 "conservative_3" = "conservative",
+                 "conservative" = "conservative",
+                 "conservative_5" = "conservative"
+                 ))
+setFixest_etable(digits = 2, digits.stats = 3)
+```
+
+
+### Load
+
+```{r}
+load("input_data/use_this_data.Rdata")
+```
+
+### Functions
+
+```{r}
+
+extract_brms_stats <- function(mod){
+  draws <- get_parameters(mod)
+  mp <- model_parameters(draws, ci_method = "hdi", as_draws = T, rope_ci = 1)
+  hdi90 <- hdi(draws, component = "all", ci=.9)
+  ess <- effective_sample(mod,component = "all")
+  
+  message("stats extracted!")
+  
+  tibble(mp) %>%
+    rename(CI_low_95 = CI_low, CI_high_95 = CI_high) %>%
+    left_join(ess, by = "Parameter") %>% 
+    left_join(hdi90, by = "Parameter") %>%
+    select(-CI) %>%
+    rename(CI_low_90 = CI_low, CI_high_90 = CI_high) %>%
+    mutate(rhat = rhat(mod)[Parameter],
+           Parameter = Parameter %>% 
+             gsub(pattern = "b_", replacement = "", fixed = T) %>% 
+             gsub(pattern = "Intercept",replacement = "(intercept)", 
+                  fixed = T) )
+}
+
+
+prep_brms_table <- function(stats_df){
+  stats_df %>% 
+    mutate(`90% HDI` = sprintf("(%.2f, %.2f)", CI_low_90, CI_high_90),
+           `95% HDI` = sprintf("(%.2f, %.2f)", CI_low_95, CI_high_95),
+           Parameter = Parameter %>% 
+             gsub(pattern = "^tr", replacement = "treatment")) %>%
+    relocate(`95% HDI`,
+             `90% HDI`, 
+             .after = "Median") %>%
+    select(-starts_with("CI"), 
+           -contains(c("ROPE")))
+}
+
+make_contrast_rep <- function(x) {
+  contrast <- emmeans(x, ~ tr*republican) %>%
+    pairs(by = "republican", reverse = T)
+  
+  message("marginal means calculated!")
+    
+  left_join(
+    as.data.frame(contrast) %>% 
+      rename(CI_low_95 = lower.HPD,
+             CI_high_95 = upper.HPD),
+    confint(contrast, level=.9) %>% 
+      as.data.frame() %>%
+      rename(CI_low_90 = lower.HPD,
+             CI_high_90 = upper.HPD),
+    by = c("contrast", "republican", "estimate"))
+}
+
+make_contrast_con <- function(x) {
+  contrast <- emmeans(x, ~ tr*conservative) %>%
+    pairs(by = "conservative", reverse = T)
+  
+  message("marginal means calculated!")
+    
+  left_join(
+    as.data.frame(contrast) %>% 
+      rename(CI_low_95 = lower.HPD,
+             CI_high_95 = upper.HPD),
+    confint(contrast, level=.9) %>% 
+      as.data.frame() %>%
+      rename(CI_low_90 = lower.HPD,
+             CI_high_90 = upper.HPD),
+    by = c("contrast", "conservative", "estimate"))
+}
+```
+
+### Strings
+```{r}
+outcome_labels <-
+  c("illegal immigration\nproblem in US",
+    "illegal immigration\nproblem in community",
+    "restrict\nlegal immigration",
+    "party\n(Dem.–Rep. scale)",
+    "ideology\n(Lib.–Con. scale)",
+    "Obama approval",
+    "political participation",
+    "interest in politics",
+    "discuss politics\nand current events\nwith family",
+    "discuss politics\nand current events\nwith friends") %>%
+  fct_inorder() %>% fct_rev()
+
+hypothesis_labels <-
+  c(rep("H1: Nativist Backlash",3),
+    rep("H2: Righward Shift",3),
+    rep("H3: Political Engagement", 4)) %>% fct_inorder()
+
+political_labels <- c("not Republican (left)\nnot conservative (right)","Republican (left)\nConservative (right)")
+
+fe_headers <- list("^Hypothesis:" = list("H1: Nativist Backlash" = 3, 
+                                        "H2: Righward Shift" = 3, 
+                                        "H3: Political Engagement" = 4))
+
+fe_headers_april <- list("^Hypothesis:" = list("H1: Nativist Backlash" = 2, 
+                                        "H2: Righward Shift" = 2, 
+                                        "H3: Political Engagement" = 4))
+
+section_headings <- rep(3, 10)
+names(section_headings) <- 
+  paste("Outcome:", outcome_labels %>% 
+          gsub(pattern = "\n", replacement = " "))
+
+section_headings_interact <- rep(5, 10)
+names(section_headings_interact) <- 
+  paste("Outcome:", outcome_labels %>% 
+          gsub(pattern = "\n", replacement = " "))
+
+section_headings_contrast <- rep(2, 10)
+names(section_headings_contrast) <- 
+  paste("Outcome:", outcome_labels %>% 
+          gsub(pattern = "\n", replacement = " "))
+
+first_diff_cap <- "Models for %s students comparing pre- and post-attack outcomes (%s)"
+
+party_cap <- "%s models with party interactions (Republican defined as %d or higher where 1 is `strong Democrat' and 7 is `strong Republican')"
+ideo_cap <- "%s models with ideology interactions (conservative defined as %d or higher where 1 is `extremely liberal' and 7 is `extremely conservative')"
+
+```
+
+## Descriptive Statistics
+
+```{r}
+d <- dat %>% 
+  mutate(gender = factor(ifelse(gender==1, "male", "female")),
+         location = factor(ifelse(chapter!=12, "non-local", "local")) %>% relevel("non-local"),
+         period =  factor(ifelse(Wave!=16.11, "pre-attack", "post-attack")) %>% relevel("pre-attack"),
+         zip_prop_us_born = us_born_population/total_population,
+         zip_median_income = zip_median_income/1000,
+         race = recode_factor(race,
+                              black = "Black",
+                              white = "White",
+                              other = "Other"),
+         immigration_status = gsub(x = immigration_status, 
+                                   pattern = "scholar", 
+                                   replacement = "student"),
+         religion  = recode_factor(religion,
+                                   Catholic = "Catholic",
+                                   Protestant_etc = "Other Christian",
+                                   Other = "Other Religion",
+                                   None = "None"),
+         first_gen = case_when(father_education > 4 & mother_education > 4 ~ "both",
+                               mother_education > 4 | mother_education > 4~ "one",
+                               father_education <= 4 | mother_education <= 4 ~ "neither") %>% fct_relevel("both", "one")
+  ) %>% select(location, Wave,
+               period,
+               gender, 
+               race, 
+               religion, 
+               immigration_status,
+               first_gen,
+               illegal_imm_prob_us, 
+               illegal_imm_prob_cmty, 
+               restrict_legal_imm,
+               partyid, ideology, 
+               obama_appr, 
+               political_interest, 
+               participation_index, 
+               political_talk_with_family,    
+               political_talk_with_friends,
+               zip_median_income,
+               zip_prop_us_born, candidate_choice, openness, extroversion, conscientiousness, neuroticism, agreeableness, stress_amount, happiness)
+
+```
+
+```{r}
+tab_a1 <- d %>% 
+  select(#location,
+  gender, race, religion, 
+  immigration_status, first_gen, 
+  zip_median_income, zip_prop_us_born, candidate_choice, 
+  #openness, extroversion, conscientiousness, neuroticism, agreeableness
+) %>%
+  tbl_summary(statistic = list(all_continuous() ~ "{median}", 
+                               all_categorical() ~ "{p}%"),
+              #by = location,
+              # type = list(
+              #   agreeableness ~ "continuous",
+              #   neuroticism ~ "continuous",
+              #   extroversion ~ "continuous",
+              #   conscientiousness ~ "continuous",
+              #   openness ~ "continuous"),
+              label = list(
+                zip_median_income ~ "median income in home ZIP ($1000s)",
+                zip_prop_us_born ~ "proportion US-born pop. in home ZIP ",
+                immigration_status ~ "immigration status",
+                candidate_choice ~ "candidate choice",
+                first_gen ~ "Parents' with Bachelor's deg."
+              ),
+              missing = "no")
+
+# View
+v <- tab_a1 %>% 
+  as_kable_extra(
+    digits = 1, 
+    caption = "Descriptive statistics for students in residential scholarship program") %>%
+  kable_styling(latex_options = "hold_position", font_size = 9)
+
+# latex
+l <- tab_a1 %>%
+  as_kable_extra(format = "latex",
+    digits = 1, 
+    linesep = "",
+    booktabs = T,
+    caption = "Descriptive statistics for outcome variables",  
+    label = "descriptives_cat") %>%
+  kable_styling(latex_options = "HOLD_position",
+                font_size = 9) %>% 
+  gsub(pattern = "\\textsuperscript{1} %; Median", replacement = "Note: Statistics without a % are medians.\\Statistics based on observations. Students are counted multiple times if they appear in multiple waves.", fixed = T)
+
+write(l, file="SI/table_descriptives_cat.tex")
+```
+
+```{r}
+tab_a2 <- d %>%
+  select(period, 
+         location, 
+         illegal_imm_prob_us, 
+         illegal_imm_prob_cmty, 
+         restrict_legal_imm,
+         partyid, 
+         ideology, 
+         obama_appr, 
+         political_interest, 
+         participation_index, 
+         political_talk_with_family,    
+         political_talk_with_friends) %>%
+  tbl_strata(
+    strata = location,
+    .tbl_fun =
+      ~ .x %>%
+  tbl_summary(statistic = list(all_continuous() ~ "{mean}"),
+              by = period,
+              type = list(
+                illegal_imm_prob_us ~ "continuous",
+                illegal_imm_prob_cmty ~ "continuous",
+                restrict_legal_imm ~ "continuous",
+                partyid ~    "continuous",
+                ideology ~ "continuous",
+                obama_appr ~ "continuous",
+                participation_index ~ "continuous",
+                political_interest ~ "continuous",
+                political_talk_with_family ~ "continuous",
+                political_talk_with_friends ~ "continuous"),
+              label = list(
+                illegal_imm_prob_us ~ "illegal imm US",
+                illegal_imm_prob_cmty ~ "illegal imm cmty",
+                restrict_legal_imm ~ "legal imm",
+                partyid ~    "party",
+                ideology ~ "ideology",
+                obama_appr ~ "Obama",
+                participation_index ~ "participation",
+                political_interest ~ "interest",
+                political_talk_with_family ~ "talk family",
+                political_talk_with_friends ~ "talk friends"
+              ),
+              missing = "no")
+  )
+
+# View
+v <- tab_a2 %>% 
+  as_kable_extra(
+    digits = 1, 
+    caption = "Descriptive statistics for outcome variables") %>%
+  kable_styling(latex_options = "hold_position", font_size = 9)
+
+# latex
+l <- tab_a2 %>%
+  as_kable_extra(format = "latex",
+    digits = 1, 
+    linesep = "",
+    booktabs = T,
+    caption = "Descriptive statistics for outcome variables",  
+    label = "descriptives") %>%
+  kable_styling(latex_options = "HOLD_position",
+                font_size = 9) %>% 
+  gsub(pattern = "\\textsuperscript{1} Mean", replacement = "", fixed = T)
+
+write(l, file="SI/table_descriptives.tex")
+```
+
+## Bayesian
+
+### First differences
+
+```{r}
+
+load("model_objects/first_diff_treated.Rdata")
+
+treat.first.diff.bayes.stats <- lapply(fdt_models_list, extract_brms_stats) %>%
+  rbindlist() %>% 
+  mutate(Hypothesis = rep(hypothesis_labels, each = 3))
+
+
+table_treat_first_diff_bayes <- treat.first.diff.bayes.stats %>% 
+  prep_brms_table() %>%
+  mutate(Parameter = Parameter %>% gsub(pattern = "wave_tr", replacement = "Nov 2016 - Aug 2016")) %>%
+  kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = sprintf(first_diff_cap, "local", "Bayesian"),
+    label = "treat_fd") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9)  %>%
+  row_spec(3*(1:10)-1, bold = T) %>%
+  pack_rows(index=section_headings, bold = T, hline_after = T)
+
+write(table_treat_first_diff_bayes, file="SI/table_first_diff_bayes_tr.tex")
+```
+
+```{r}
+load("model_objects/first_diff_control.Rdata")
+
+ctrl.first.diff.bayes.stats <- lapply(fdc_models_list, extract_brms_stats) %>%
+  rbindlist() %>% 
+  mutate(Hypothesis = rep(hypothesis_labels, each = 3))
+
+table_ctrl_first_diff_bayes <- ctrl.first.diff.bayes.stats %>% 
+  prep_brms_table() %>%
+  mutate(Parameter = Parameter %>% gsub(pattern = "wave_tr", replacement = "Nov 2016 - Aug 2016")) %>%
+  kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = sprintf(first_diff_cap, "non-local", "Bayesian"),
+    label = "ctrl_fd") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9)  %>%
+  row_spec(3*(1:10)-1, bold = T) %>%
+  pack_rows(index=section_headings, bold = T, hline_after = T)
+
+write(table_ctrl_first_diff_bayes, file="SI/table_first_diff_bayes_ctrl.tex")
+```
+
+Create tibble for plotting
+```{r}
+plt.tab.FD.bayes <- bind_rows(`non-local` = ctrl.first.diff.bayes.stats,
+          `local` = treat.first.diff.bayes.stats, .id = "Location") %>%
+  filter(Parameter == "wave_tr") %>%
+  mutate(Outcome = rep(outcome_labels,2), 
+         Hypothesis = rep(hypothesis_labels,2)) %>%
+  rename(estimate = Median)
+
+```
+
+
+
+### Main
+
+Load and analyze
+```{r}
+load("model_objects/main.Rdata")
+
+main.bayes.stats <- lapply(main_models_list, extract_brms_stats) %>%
+  rbindlist() %>% 
+  mutate(Hypothesis = rep(hypothesis_labels, each = 3))
+```
+
+Create latex table for SI
+```{r}
+table_main_bayes <- main.bayes.stats %>% 
+  prep_brms_table() %>%
+  kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = "Main models (Bayesian)",
+    label = "bayes_main") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9)  %>%
+  row_spec(3*(1:10)-1, bold = T) %>%
+  pack_rows(index=section_headings, bold = T, hline_after = T)
+
+write(table_main_bayes, file="SI/table_main_bayes.tex")
+```
+
+Create tibble for plotting
+```{r}
+plt.tab.bayes <- main.bayes.stats %>% filter(Parameter == "tr") %>%
+  mutate(Outcome = outcome_labels, 
+         Hypothesis = hypothesis_labels,
+         Model = "Main") %>%
+  rename(estimate = Median)
+```
+
+### Subgroup
+#### party
+
+Load and analyze
+```{r}
+load("model_objects/interact_republican.Rdata")
+
+party.bayes.stats <- lapply(republican_models_list, 
+                            extract_brms_stats) %>%
+  rbindlist() %>% 
+  mutate(Hypothesis = rep(hypothesis_labels, each = 5))
+```
+
+Create latex table for SI
+```{r}
+table_party_bayes <- party.bayes.stats %>% 
+  prep_brms_table() %>%
+  kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = sprintf(party_cap, "Bayesian", 4),
+    label = "bayes_party") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9)  %>%
+  row_spec(5*(1:10)-1, bold = T) %>%
+  pack_rows(index=section_headings_interact, bold = T, hline_after = T)
+
+write(table_party_bayes, file="SI/table_party_bayes.tex")
+```
+
+Create table for plotting
+```{r}
+rep.tab <- lapply(republican_models_list, make_contrast_rep)
+
+plt.tab.rep <- rbindlist(rep.tab)
+plt.tab.rep[, Outcome := rep(outcome_labels, each = 2)]
+```
+
+and for SI
+```{r Republican}
+table_party_contrasts <- plt.tab.rep %>%
+  mutate(Party = ifelse(republican==1, "Republican", "Not Republican")) %>%
+  select(-contrast, -republican, -Outcome) %>%
+  rename(Median = estimate,
+         `Lower 95% HDI`= CI_low_90,
+         `Upper 95% HDI`= CI_high_90,
+         `Lower 90% HDI`= CI_low_95,
+         `Upper 90% HDI`= CI_high_95) %>%
+    relocate(Party) %>% 
+kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = "Conditional treatment effects by party used to construct Figure 2, left panel",
+    label = "constrast_party") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9) %>%
+  pack_rows(index = section_headings_contrast)
+
+write(table_party_contrasts, file="SI/table_party_contrasts.tex")
+```
+
+
+#### ideology
+
+Load and analyze
+```{r}
+load("model_objects/interact_conservative.Rdata")
+
+ideo.bayes.stats <- lapply(conservative_models_list, extract_brms_stats) %>%
+  rbindlist() %>% 
+  mutate(Hypothesis = rep(hypothesis_labels, each = 5))
+```
+
+Create latex table for SI
+```{r}
+table_ideo_bayes <- ideo.bayes.stats %>% 
+  prep_brms_table() %>%
+  kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = sprintf(ideo_cap, "Bayesian", 4),
+    label = "bayes_ideo") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9)  %>%
+  row_spec(5*(1:10)-1, bold = T) %>%
+  pack_rows(index=section_headings_interact, bold = T, hline_after = T)
+
+write(table_ideo_bayes, file="SI/table_ideo_bayes.tex")
+```
+
+Create tibble for plotting
+```{r}
+con.tab <- lapply(conservative_models_list, make_contrast_con)
+
+plt.tab.con <- rbindlist(con.tab)
+plt.tab.con[, Outcome := rep(outcome_labels, each = 2)]
+```
+
+and for SI
+```{r}
+table_ideo_contrasts <- plt.tab.con %>%
+  mutate(Ideology = ifelse(conservative==1, "Conservative", "Not Conservative")) %>%
+  select(-contrast, -conservative, -Outcome) %>%
+  rename(Median = estimate,
+         `Lower 95% HDI`= CI_low_90,
+         `Upper 95% HDI`= CI_high_90,
+         `Lower 90% HDI`= CI_low_95,
+         `Upper 90% HDI`= CI_high_95) %>%
+    relocate(Ideology) %>% 
+kbl(format = "latex",
+    digits = 2, 
+    booktabs = T,
+    caption = "Conditional treatment effects by ideology used to construct Figure 2, right panel",
+    label = "constrast_ideo") %>%
+  kable_styling( latex_options = "hold_position",
+                 font_size = 9) %>%
+  pack_rows(index = section_headings_contrast)
+
+write(table_ideo_contrasts, file="SI/table_ideo_contrasts.tex")
+```
+
+
+## Fixed Effects
+
+### First Differences
+
+```{r}
+m.tr <- dat.fd.tr %>%
+  feglm(..outcomes ~ wave_tr |  id, data = .)
+
+
+etable(m.tr, replace =T, file = "SI/table_first_diff_FE_tr.tex", 
+       headers = fe_headers, 
+       label = "tab:first_diff_FE_ctrl", 
+       title = sprintf(first_diff_cap, "local", "frequentist"))
+
+
+m.ctrl <- dat.fd.ctrl %>%
+  feglm(..outcomes ~ wave_tr |  id, data = .)
+
+etable(m.ctrl, replace =T, file = "SI/table_first_diff_FE_ctrl.tex", 
+       headers = fe_headers, 
+       label = "tab:first_diff_FE_tr", 
+       title = sprintf(first_diff_cap, "non-local", "frequentist"))
+```
+
+
+
+### Main
+```{r FE}
+m <- feglm(..outcomes ~ tr  | Wave + id, data = dat, vcov = "twoway")
+
+plt.tab.freq <- coefplot(m, only.params=T)[[1]] %>%
+  rename(CI_low_95=ci_low, CI_high_95=ci_high) %>%
+  bind_cols(
+    coefplot(m, only.params=T, ci_level = 0.9)[[1]] %>%
+      transmute(CI_low_90=ci_low, CI_high_90=ci_high)
+  ) %>%
+  mutate(Outcome = outcome_labels, Hypothesis = hypothesis_labels)
+
+etable(m, replace =T, file = "SI/table_main_FE.tex", 
+       headers = fe_headers, 
+       label = "tab:main_FE", 
+       title = "Main models (frequentist)")
+```
+
+### Robustness Checks
+```{r Same State}
+m <- feglm(..outcomes ~ tr  | Wave + id, data = dat[chapter %in% c(5,12)], vcov = "twoway")
+
+plt.tab.freq.same.st <- coefplot(m, only.params=T)[[1]] %>% 
+    rename(CI_low_95=ci_low, CI_high_95=ci_high) %>%
+  bind_cols(
+    coefplot(m, only.params=T, ci_level = 0.9)[[1]] %>% 
+      transmute(CI_low_90=ci_low, CI_high_90=ci_high)
+  ) %>% 
+  mutate(Outcome = outcome_labels, Hypothesis = hypothesis_labels)
+
+
+
+etable(m, replace =T, file = "SI/table_rob_same_state.tex", 
+       headers = fe_headers, 
+       label = "tab:same_state", 
+       title = "Same-State Effects: Subsetting on respondents in the same state as the attack (frequentist)")
+
+```
+
+```{r Same School Year}
+m <- feglm(..outcomes ~ tr  | Wave + id, data = dat[Wave > 16.05], vcov = "twoway")
+plt.tab.freq.same.yr <- coefplot(m, only.params=T)[[1]] %>% 
+    rename(CI_low_95=ci_low, CI_high_95=ci_high) %>%
+  bind_cols(
+    coefplot(m, only.params=T, ci_level = 0.9)[[1]] %>% 
+      transmute(CI_low_90=ci_low, CI_high_90=ci_high)
+  ) %>% 
+  mutate(Outcome = outcome_labels, Hypothesis = hypothesis_labels)
+
+
+etable(m, replace =T, file = "SI/table_rob_same_year.tex", 
+       headers = fe_headers, 
+       label = "tab:same_year", 
+       title = "Same-Year Effects: Subsetting on observations in the same school year as the attack (frequentist)")
+```
+
+```{r Second Post Wave}
+
+m <- feglm(..outcomes17 ~ tr  | Wave + id, data = dat17[Wave!=16.11], vcov = "twoway")
+
+plt.tab.freq.17 <- coefplot(m, only.params=T)[[1]] %>% 
+    rename(CI_low_95=ci_low, CI_high_95=ci_high) %>%
+  bind_cols(
+    coefplot(m, only.params=T, ci_level = 0.9)[[1]] %>% 
+      transmute(CI_low_90=ci_low, CI_high_90=ci_high)
+  ) %>% 
+  mutate(Outcome = outcome_labels[-c(3,6)], Hypothesis = hypothesis_labels[-c(3,6)])
+
+etable(m, replace =T, file = "SI/table_rob_long_term.tex", 
+       headers = fe_headers_april, 
+       label = "tab:long_term", tpt =T,
+       notes = "Note: The Obama approval and legal immigration questions were not asked in this survey wave.",
+       title = "Long-term effects: November 2016 post-treatment observations replaced with April 2017 observations (frequentist)")
+
+```
+
+```{r}
+plt.tab.rob <- bind_rows(
+  "Main" = plt.tab.freq,
+  "Same State" = plt.tab.freq.same.st,
+  "Same Year" = plt.tab.freq.same.yr,
+  #"Two" = plt.tab.freq.1617,
+  "Long-term" = plt.tab.freq.17, .id = "Model"
+)
+```
+
+
+### Subgroup
+
+#### party
+```{r}
+m <- feglm(..outcomes ~ tr*republican_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_rep_3.tex", 
+       headers = fe_headers, 
+       label = "tab:rep_3",
+       title = sprintf(party_cap, "Frequentist", 4))
+
+m <- feglm(..outcomes ~ tr*republican_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_rep_4.tex", 
+       headers = fe_headers, 
+       label = "tab:rep_4",
+       title = sprintf(party_cap, "Frequentist", 5))
+
+m <- feglm(..outcomes ~ tr*republican_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_rep_5.tex", 
+       headers = fe_headers, 
+       label = "tab:rep_5",
+       title = sprintf(party_cap, "Frequentist", 6))
+```
+
+#### ideology
+
+```{r}
+m <- feglm(..outcomes ~ tr*conservative_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_con_3.tex", 
+       headers = fe_headers, 
+       label = "tab:con_3",
+       title = sprintf(ideo_cap, "Frequentist", 4))
+
+m <- feglm(..outcomes ~ tr*conservative_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_con_4.tex", 
+       headers = fe_headers, 
+       label = "tab:con_4",
+       title = sprintf(ideo_cap, "Frequentist", 5))
+
+m <- feglm(..outcomes ~ tr*conservative_3 | Wave + id, data = dat, vcov = "twoway")
+
+etable(m, replace =T, file = "SI/table_con_5.tex", 
+       headers = fe_headers, 
+       label = "tab:con_5",
+       title = sprintf(ideo_cap, "Frequentist", 6))
+```
+
+## Plots
+
+### First Diff Figure
+
+```{r}
+
+plt.tab.FD.bayes %>% 
+  ggplot() + 
+  geom_pointrange(
+    aes(
+      x = estimate, y = Outcome,
+      xmin = CI_low_95,
+      xmax = CI_high_95,
+      color = Location), size = .35,
+    position = position_dodge(0.5)) +
+  geom_linerange(
+    aes(
+      y = Outcome,
+      xmin = CI_low_90,
+      xmax = CI_high_90,
+      color = Location), size = .7,
+    position = position_dodge(0.5)) +
+  theme_bw() + 
+  theme(text=element_text(size=10),
+        axis.title =element_text(size=9)) +
+  scale_colour_viridis_d(option = "magma", end =0.8, direction = -1,
+                         guide = guide_legend(reverse = TRUE)) +
+  geom_vline(xintercept = 0, linetype = "solid") +
+  labs(y = "H3: Political Engagement              H2: Rightward Shift       H1: Nativist Backlash",
+       color="Location",
+       x = "Difference between November 2020 and August 2020 (in SDs)")
+
+
+
+ggsave("SI/First_Differences.jpeg", width = 17.8, height = 14, units = "cm")
+```
+### Figure 1
+
+```{r}
+plt.tab.main <- bind_rows("Main Model\n(Bayesian)" = plt.tab.bayes, 
+                          "Robustness Checks\n(Frequentist)" = plt.tab.rob,
+                          .id = "Framework") %>% 
+  mutate(Dataset = fct_rev(fct_inorder(Model))) %>%
+  select(estimate, Outcome, CI_low_95, CI_high_95, 
+         CI_low_90, CI_high_90, Dataset, Framework)
+
+
+plt.tab.main %>%  
+  ggplot() + 
+  geom_pointrange(
+    aes(
+      x = estimate, y = Outcome,
+      xmin = CI_low_95,
+      xmax = CI_high_95,
+      color = Dataset), size = .35,
+    position = position_dodge(0.5)) +
+  facet_wrap(~Framework) + 
+  geom_linerange(
+    aes(
+      y = Outcome,
+      xmin = CI_low_90,
+      xmax = CI_high_90,
+      color = Dataset), size = .7,
+    position = position_dodge(0.5)) +
+  theme_bw() + 
+  theme(text=element_text(size=10),
+        axis.title =element_text(size=9)) +
+  scale_colour_viridis_d(option = "magma", end =0.8, direction = -1,
+                         guide = guide_legend(reverse = TRUE)) +
+  geom_vline(xintercept = 0, linetype = "solid") +
+  geom_vline(xintercept = 0.45, linetype = "dotted") +
+  labs(y = "H3: Political Engagement              H2: Rightward Shift       H1: Nativist Backlash",
+       color="Data Subset",
+       x = "Average Treatment Effect of Attack (in SDs)")
+
+ggsave("figures/Main_Effects.jpeg", width = 17.8, height = 14, units = "cm")
+```
+
+### Figure 2
+
+```{r}
+
+bind_rows(party = plt.tab.rep %>%
+            mutate(Subgroup = factor(republican,
+                                  labels = political_labels)),
+          ideology = plt.tab.con %>%
+            mutate(Subgroup = factor(conservative,
+                                  labels = political_labels)),
+          .id = "moderator") %>%
+  mutate(Outcome = fct_inorder(Outcome) %>% fct_rev(),
+         Subgroup = fct_inorder(Subgroup) %>% fct_rev(),
+         moderator = fct_inorder(moderator)) %>%
+  ggplot() + geom_pointrange(
+    aes(
+      x = estimate, y = Outcome,
+      xmin = CI_low_95,
+      xmax = CI_high_95,
+      color = Subgroup), size = .35,
+    position = position_dodge(0.5)) +
+  facet_wrap(~moderator) + 
+  geom_linerange(
+    aes(
+      y = Outcome,
+      xmin = CI_low_90,
+      xmax = CI_high_90,
+      color = Subgroup), size = .7,
+    position = position_dodge(0.5)) +
+  theme_bw() + #scale_color_npg() +
+  theme(text=element_text(size=10),
+        axis.title =element_text(size=9) ) +
+  scale_colour_manual(
+    values = c("red", "blue"),
+    guide = guide_legend(reverse = TRUE)) +
+  # scale_colour_viridis_d(option = "magma", end =0.8, direction = -1,
+  #                        guide = guide_legend(reverse = TRUE))+
+  geom_vline(xintercept = 0, linetype = "solid") +
+  labs(y = "H3: Political Engagement      H2: Rightward Shift      H1: Nativist Backlash",
+       x = "Conditional Average Treatment Effect of Attack (in SDs)")+
+  theme(legend.position= "bottom",
+        legend.title=element_text(size = 8,margin = margin(t = 0,b = 0)),
+        legend.text = element_text(size = 8,
+          margin = margin(t = 0,b = 0, unit = "pt")))
+ggsave("figures/Subgroups.jpeg", width = 17.8, height = 13, units = "cm")
+```
+
+### Aristotelian Networks
+
+```{r}
+source("artistotelian_networks.R")
+```
+
+

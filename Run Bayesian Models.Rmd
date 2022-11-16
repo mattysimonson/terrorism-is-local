@@ -1,0 +1,893 @@
+---
+title: "Run Bayesian Models"
+author: "Matthew Simonson"
+date: "7/1/2022"
+output: html_document
+---
+
+# Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(data.table)
+library(parallel)
+library(brms)
+library(texreg)
+options(cores = detectCores())
+run_main_effects <- TRUE
+```
+
+## Strings
+```{r}
+outcomes <- c("illegal_imm_prob_us",
+              "illegal_imm_prob_cmty",
+              "restrict_legal_imm",
+              "partyid",
+              "ideology",
+              "obama_appr",
+              "political_interest",
+              "participation_index",
+              "political_talk_with_family",
+              "political_talk_with_friends")
+```
+
+## Load and Clean Data
+```{r}
+load("input_data/survey_data_new.RData")
+```
+
+Make binary versions of interaction variables and impute them forward
+```{r}
+survey_data[ Wave < 16.11 , republican := 1*(partyid > 4)]
+survey_data[ Wave < 16.11 , conservative := 1*(ideology > 4)]
+survey_data[ Wave < 16.11 , neurotic := 1*(neuroticism > 3)]
+survey_data[ Wave < 16.11 , anxious := 1*(frequency_anxious > 2.5)]
+mods <- c("republican","conservative","neurotic","anxious")
+survey_data[, (mods) := nafill(.SD, "locf"), by=id, .SDcols=mods]
+```
+
+Binary versions for with other thresholds for robustness checks
+```{r}
+survey_data[ Wave < 16.11 , republican_3 := 1*(partyid > 3)]
+survey_data[ Wave < 16.11 , conservative_3 := 1*(ideology > 3)]
+survey_data[ Wave < 16.11 , neurotic_2 := 1*(neuroticism > 2)]
+survey_data[ Wave < 16.11 , anxious_2 := 1*(frequency_anxious > 2)]
+
+mods <- c("republican_3","conservative_3","neurotic_2","anxious_2")
+survey_data[, (mods) := nafill(.SD, "locf"), by=id, .SDcols=mods]
+```
+
+```{r}
+survey_data[ , republican_4:=republican]
+survey_data[ , conservative_4:=conservative]
+survey_data[ , neurotic_3:=neurotic]
+survey_data[ , anxious_2.5:=anxious]
+```
+
+```{r}
+survey_data[ Wave < 16.11 , republican_5 := 1*(partyid > 5)]
+survey_data[ Wave < 16.11 , conservative_5 := 1*(ideology > 5)]
+survey_data[ Wave < 16.11, neurotic_4 := 1*(neuroticism > 4)]
+survey_data[ Wave < 16.11, anxious_3 := 1*(frequency_anxious > 3)]
+
+mods <- c("republican_5","conservative_5","neurotic_4","anxious_3")
+survey_data[, (mods) := nafill(.SD, "locf"), by=id, .SDcols=mods]
+```
+
+Preserve original variables
+```{r}
+survey_data[ , partyid.raw := partyid]
+survey_data[ , ideology.raw := ideology]
+survey_data[ , neuroticism.raw := neuroticism]
+survey_data[ , frequency_anxious.raw := frequency_anxious]
+```
+
+Drop observations with no outcomes recorded
+```{r}
+dat17 <- survey_data[is.na(illegal_imm_prob_us) +
+                 is.na(illegal_imm_prob_cmty) +
+                 is.na(restrict_legal_imm) +
+                 is.na(partyid) + 
+                 is.na(ideology) +
+                 is.na(obama_appr) +
+                 is.na(political_interest) +
+                 is.na(participation_index) + 
+                 is.na(political_talk_with_family) + 
+                 is.na(political_talk_with_friends) < 10]
+```
+
+Standardize outcomes
+```{r}
+dat17 <- sjmisc::std(dat17, outcomes, suffix = "")
+```
+
+Data subsets
+
+```{r}
+dat <- dat17[Wave<17]
+
+dat.fd.tr  <- dat %>% filter(Wave %in% c(16.08, 16.11)) %>%
+  mutate(wave_tr = 1*(Wave==16.11)) %>% 
+  filter(chapter==12)
+
+dat.fd.ctrl  <- dat %>% filter(Wave %in% c(16.08, 16.11)) %>%
+  mutate(wave_tr = 1*(Wave==16.11)) %>% 
+  filter(chapter!=12)
+```
+
+Save data
+```{r}
+save(dat, dat17, dat.fd.tr, dat.fd.ctrl, file = "input_data/use_this_data.Rdata")
+```
+
+
+# First Differences
+
+## H1
+```{r eval = run_main_effects}
+
+set.seed(20015)
+fdt.imm.us <- brm(illegal_imm_prob_us ~ wave_tr + ( 1 | id),
+               data = dat.fd.tr[!is.na(illegal_imm_prob_us)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.imm.us <- brm(illegal_imm_prob_us ~ wave_tr + ( 1 | id),
+               data = dat.fd.ctrl[!is.na(illegal_imm_prob_us)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+
+```{r}
+
+fdt.imm.cmty <- brm(illegal_imm_prob_cmty ~ wave_tr + ( 1 | id),
+               data = dat.fd.tr[!is.na(illegal_imm_prob_cmty)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.imm.cmty <- brm(illegal_imm_prob_cmty ~ wave_tr + ( 1 | id),
+               data = dat.fd.ctrl[!is.na(illegal_imm_prob_cmty)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r}
+
+fdt.imm.legal <- brm(restrict_legal_imm ~ wave_tr + ( 1 | id),
+               data = dat.fd.tr[!is.na(restrict_legal_imm)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.imm.legal <- brm(restrict_legal_imm ~ wave_tr + ( 1 | id),
+               data = dat.fd.ctrl[!is.na(restrict_legal_imm)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+```
+
+## H2
+
+```{r}
+
+fdt.party <- brm(partyid ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(partyid)],
+               seed = 20015,
+               control = list(adapt_delta = .995),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.party <- brm(partyid ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(partyid)],
+               seed = 20015,
+               control = list(adapt_delta = .995),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r}
+
+fdt.ideo <- brm(ideology ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(ideology)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.ideo <- brm(ideology ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(ideology)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r}
+
+fdt.obama <- brm(obama_appr ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(obama_appr)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.obama <- brm(obama_appr ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(obama_appr)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+## H3
+```{r}
+
+fdt.particip <- brm(participation_index ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(participation_index)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.particip <- brm(participation_index ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(participation_index)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r}
+
+fdt.int <- brm(political_interest ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(political_interest)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.int <- brm(political_interest ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(political_interest)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r}
+
+fdt.tfam <- brm(political_talk_with_family ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(political_talk_with_family)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.tfam <- brm(political_talk_with_family ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(political_talk_with_family)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+
+
+```{r}
+
+fdt.tfr <- brm(political_talk_with_friends ~ wave_tr+ ( 1 | id),
+               data = dat.fd.tr[!is.na(political_talk_with_friends)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+
+fdc.tfr <- brm(political_talk_with_friends ~ wave_tr+ ( 1 | id),
+               data = dat.fd.ctrl[!is.na(political_talk_with_friends)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+```{r}
+
+fdt_models_list <- list(fdt.imm.us, fdt.imm.cmty, fdt.imm.legal,
+     fdt.party, fdt.ideo, fdt.obama,
+     fdt.particip, fdt.int, fdt.tfam, fdt.tfr)
+save(fdt_models_list, file = "model_objects/first_diff_treated.Rdata")
+fdc_models_list <- list(fdc.imm.us, fdc.imm.cmty, fdc.imm.legal,
+     fdc.party, fdc.ideo, fdc.obama,
+     fdc.particip, fdc.int, fdc.tfam, fdc.tfr)
+save(fdc_models_list, file = "model_objects/first_diff_control.Rdata")
+
+```
+
+
+
+# Main Effects
+## H1
+```{r eval = run_main_effects}
+m.imm.us <- brm(illegal_imm_prob_us ~ tr + ( 1 | id) + (1|Wave),
+               data = dat[!is.na(illegal_imm_prob_us)],
+               seed = 20015,
+               control = list(adapt_delta = .99),
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+```{r eval = run_main_effects}
+m.imm.cmty <- brm(illegal_imm_prob_cmty ~ tr + ( 1 | id) + (1|Wave),
+             data = dat[!is.na(illegal_imm_prob_cmty)],
+             seed = 20015,
+             prior = set_prior("normal(0,2)", class = "b"),
+             cores = 4)
+```
+
+```{r eval = run_main_effects}
+m.imm.legal <- brm(restrict_legal_imm ~ tr + ( 1 | id) + (1|Wave),
+                  data = dat[!is.na(restrict_legal_imm)],
+                  seed = 20015,
+                  prior = set_prior("normal(0,2)", class = "b"),
+                  cores = 4)
+```
+
+## H2
+```{r eval = run_main_effects}
+m.party <- brm(partyid ~ tr + ( 1 | id) + (1|Wave),
+               data = dat[!is.na(partyid)],
+               seed = 20015, iter = 4000,
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+
+```{r eval = run_main_effects}
+m.ideo <- brm(ideology ~ tr + ( 1 | id) + (1|Wave),
+              data = dat[!is.na(ideology)],
+              seed = 20015,
+              prior = set_prior("normal(0,2)", class = "b"),
+              cores = 4)
+```
+
+
+```{r eval = run_main_effects}
+m.obama <- brm(obama_appr ~ tr + ( 1 | id) + (1|Wave),
+               data = dat[!is.na(obama_appr)],
+               seed = 20015,
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+## H3
+```{r eval = run_main_effects}
+m.particip <- brm(participation_index ~ tr + ( 1 | id) + (1|Wave),
+               data = dat[!is.na(participation_index)],
+               seed = 20015,
+               prior = set_prior("normal(0,2)", class = "b"),
+               cores = 4)
+```
+
+
+```{r eval = run_main_effects}
+m.int <- brm(political_interest ~ tr + ( 1 | id) + (1|Wave),
+                  data = dat[!is.na(political_interest)],
+                  seed = 20015,
+                  prior = set_prior("normal(0,2)", class = "b"),
+                  cores = 4)
+```
+
+
+```{r eval = run_main_effects}
+m.tfam <- brm(political_talk_with_family ~ tr + ( 1 | id) + (1|Wave),
+              data = dat[ is.na(political_talk_with_family)==F],
+              seed = 20015,
+              control = list(adapt_delta = .99),
+              prior = set_prior("normal(0,2)", class = "b"),
+              cores = 4)
+```
+
+
+```{r eval = run_main_effects}
+m.tfr <- brm(political_talk_with_friends ~ tr + ( 1 | id) + (1|Wave),
+             data = dat[ is.na(political_talk_with_friends)==F],
+             seed = 20015,
+             control = list(adapt_delta = .99),
+             prior = set_prior("normal(0,2)", class = "b"),
+             cores = 4)
+```
+
+
+```{r}
+main_models_list <- list(m.imm.us, m.imm.cmty, m.imm.legal,
+     m.party, m.ideo, m.obama,
+     m.particip, m.int, m.tfam, m.tfr)
+save(main_models_list, file = "model_objects/main.Rdata")
+
+```
+
+
+# Interactions
+## Republican
+
+### H1/4
+```{r eval=run_rep_interactions}
+m.imm.usXrep <- brm(illegal_imm_prob_us ~ tr*republican + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_us)+is.na(republican)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 20015,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.imm.cmtyXrep <- brm(illegal_imm_prob_cmty ~ tr*republican + ( 1 | id) + (1|Wave),
+                      data = dat[is.na(illegal_imm_prob_cmty)+ is.na(republican)==0],
+                      control = list(adapt_delta = .99),
+                      seed = 20015,
+                      prior = set_prior("normal(0,1)", class = "b"),
+                      cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.imm.legalXrep <- brm(restrict_legal_imm ~ tr*republican + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(restrict_legal_imm) + is.na(republican)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+### H2/4
+```{r eval=run_rep_interactions}
+m.partyXrep <- brm(partyid ~ tr*republican + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(partyid) + is.na(republican)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.ideoXrep <- brm(ideology ~ tr*republican + ( 1 | id) + (1|Wave),
+                  data = dat[is.na(ideology) + is.na(republican)==0],
+                  control = list(adapt_delta = .99),
+                  seed = 20015,
+                  prior = set_prior("normal(0,1)", class = "b"),
+                  cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.obamaXrep <- brm(obama_appr ~ tr*republican + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(obama_appr) + is.na(republican)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+### H3/4
+
+```{r eval=run_rep_interactions}
+m.participXrep <- brm(participation_index ~ tr*republican + ( 1 | id) + (1|Wave),
+                      data = dat[is.na(participation_index) + is.na(republican)==0],
+                      control = list(adapt_delta = .99),
+                      seed = 20015,
+                      prior = set_prior("normal(0,1)", class = "b"),
+                      cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.intXrep <- brm(political_interest ~ tr*republican + ( 1 | id) + (1|Wave),
+                 data = dat[is.na(political_interest) + is.na(republican)==0],
+                 control = list(adapt_delta = .99),
+                 seed = 20015,
+                 prior = set_prior("normal(0,1)", class = "b"),
+                 cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.tfamXrep <- brm(political_talk_with_family ~ tr*republican + ( 1 | id) + (1|Wave),
+                  data = dat[is.na(political_talk_with_family) + is.na(republican)==0],
+                  control = list(adapt_delta = .99),
+                  seed = 20015,
+                  prior = set_prior("normal(0,1)", class = "b"),
+                  cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+m.tfrXrep <- brm(political_talk_with_friends ~ tr*republican + ( 1 | id) + (1|Wave),
+                 data = dat[is.na(political_talk_with_friends) + is.na(republican)==0],
+                 control = list(adapt_delta = .99),
+                 seed = 20015,
+                 prior = set_prior("normal(0,1)", class = "b"),
+                 cores = 4)
+```
+
+
+```{r eval=run_rep_interactions}
+republican_models_list <- list(
+        m.imm.usXrep, m.imm.cmtyXrep, m.imm.legalXrep,
+     m.partyXrep, m.ideoXrep, m.obamaXrep,
+     m.participXrep, m.intXrep, m.tfamXrep, m.tfrXrep
+)
+save(republican_models_list,
+     file = "model_objects/interact_republican.Rdata")
+```
+
+## Conservative
+
+### H1/4
+```{r eval=run_con_interactions}
+m.imm.usXcon <- brm(illegal_imm_prob_us ~ tr*conservative + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_us)+is.na(conservative)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 20015,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=run_con_interactions}
+m.imm.cmtyXcon <- brm(illegal_imm_prob_cmty ~ tr*conservative + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_cmty)+ is.na(conservative)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 20015,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=run_con_interactions}
+m.imm.legalXcon <- brm(restrict_legal_imm ~ tr*conservative + ( 1 | id) + (1|Wave),
+                      data = dat[is.na(restrict_legal_imm) + is.na(conservative)==0],
+                      control = list(adapt_delta = .99),
+                      seed = 20015,
+                      prior = set_prior("normal(0,1)", class = "b"),
+                      cores = 4)
+```
+
+### H1/4
+
+```{r eval=run_con_interactions}
+m.partyXcon <- brm(partyid ~ tr*conservative + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(partyid) + is.na(conservative)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+```{r eval=run_con_interactions}
+m.ideoXcon <- brm(ideology ~ tr*conservative + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(ideology) + is.na(conservative)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+```{r eval=run_con_interactions}
+m.obamaXcon <- brm(obama_appr ~ tr*conservative + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(obama_appr) + is.na(conservative)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+### H3/4
+```{r eval=run_con_interactions}
+m.participXcon <- brm(participation_index ~ tr*conservative + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(participation_index) + is.na(conservative)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=run_con_interactions}
+m.intXcon <- brm(political_interest ~ tr*conservative + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_interest) + is.na(conservative)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=run_con_interactions}
+m.tfamXcon <- brm(political_talk_with_family ~ tr*conservative + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_talk_with_family) + is.na(conservative)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=run_con_interactions}
+m.tfrXcon <- brm(political_talk_with_friends ~ tr*conservative + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_talk_with_friends) + is.na(conservative)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 20015,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=FALSE}
+
+conservative_models_list <- 
+        list(m.imm.usXcon, m.imm.cmtyXcon,
+             m.imm.legalXcon,
+             m.partyXcon, m.ideoXcon, m.obamaXcon,
+             m.participXcon, m.intXcon, m.tfamXcon, m.tfrXcon)
+
+save(conservative_models_list,
+     file = "model_objects/interact_conservative.Rdata")
+```
+
+## Anxious
+```{r eval=FALSE}
+m.imm.usXanx <- brm(illegal_imm_prob_us ~ tr*anxious + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_us)+is.na(anxious)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 20015,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.imm.cmtyXanx <- brm(illegal_imm_prob_cmty ~ tr*anxious + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_cmty)+is.na(anxious)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 20015,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.imm.legalXanx <- brm(restrict_legal_imm ~ tr*anxious + ( 1 | id) + (1|Wave),
+                     data = dat[is.na(restrict_legal_imm)+is.na(anxious)==0],
+                     control = list(adapt_delta = .99),
+                     seed = 20015,
+                     prior = set_prior("normal(0,1)", class = "b"),
+                     cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.partyXanx <- brm(partyid ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(partyid)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015, iter = 5000,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.ideoXanx <- brm(ideology ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(ideology)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015, iter = 4000,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.obamaXanx <- brm(obama_appr ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(obama_appr)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.participXanx <- brm(participation_index ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(participation_index)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.intXanx <- brm(political_interest ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(political_interest)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.tfamXanx <- brm(political_talk_with_family ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(political_talk_with_family)+is.na(anxious)==0],
+                       control = list(adapt_delta = .995),
+                       seed = 20015, iter = 5000,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.tfrXanx <- brm(political_talk_with_friends ~ tr*anxious + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(political_talk_with_friends)+is.na(anxious)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 20015,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+anxious_models_list <- list(
+        m.imm.usXanx, m.imm.cmtyXanx, m.imm.legalXanx,
+     m.partyXanx, m.ideoXanx, m.obamaXanx,
+     m.participXanx, m.intXanx, m.tfamXanx, m.tfrXanx
+)
+save(anxious_models_list,
+     file = "model_objects/interact_anxiety.Rdata")
+```
+
+## Neurotic
+
+```{r eval=FALSE}
+m.imm.usXneu <- brm(illegal_imm_prob_us ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_us)+is.na(neurotic)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 19104,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.imm.cmtyXneu <- brm(illegal_imm_prob_cmty ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                    data = dat[is.na(illegal_imm_prob_cmty) + is.na(neurotic)==0],
+                    control = list(adapt_delta = .99),
+                    seed = 19104,
+                    prior = set_prior("normal(0,1)", class = "b"),
+                    cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.imm.legalXneu <- brm(restrict_legal_imm ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                      data = dat[is.na(restrict_legal_imm) + is.na(neurotic)==0],
+                      control = list(adapt_delta = .99),
+                      seed = 19104,
+                      prior = set_prior("normal(0,1)", class = "b"),
+                      cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.ideoXneu <- brm(ideology ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                  data = dat[is.na(ideology) + is.na(neurotic)==0],
+                  control = list(adapt_delta = .99),
+                  seed = 19104,
+                  prior = set_prior("normal(0,0.5)", class = "b"),
+                  cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.partyXneu <- brm(partyid ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(partyid) + is.na(neurotic)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 19104,
+                       prior = set_prior("normal(0,0.5)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.obamaXneu <- brm(obama_appr ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                       data = dat[is.na(obama_appr) + is.na(neurotic)==0],
+                       control = list(adapt_delta = .99),
+                       seed = 19104,
+                       prior = set_prior("normal(0,1)", class = "b"),
+                       cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.participXneu <- brm(participation_index ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(participation_index) + is.na(neurotic)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 19104,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.intXneu <- brm(political_interest ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_interest) + is.na(neurotic)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 19104,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.tfamXneu <- brm(political_talk_with_family ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_talk_with_family) + is.na(neurotic)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 19104,
+                   prior = set_prior("normal(0,1)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=FALSE}
+m.tfrXneu <- brm(political_talk_with_friends ~ tr*neurotic + ( 1 | id) + (1|Wave),
+                   data = dat[is.na(political_talk_with_friends) + is.na(neurotic)==0],
+                   control = list(adapt_delta = .99),
+                   seed = 19104,
+                   prior = set_prior("normal(0,0.5)", class = "b"),
+                   cores = 4)
+```
+
+
+```{r eval=FALSE}
+neurotic_models_list <- list(m.imm.usXneu, m.imm.cmtyXneu, m.imm.legalXneu,
+     m.partyXneu, m.ideoXneu, m.obamaXneu,
+     m.participXneu, m.intXneu, m.tfamXneu, m.tfrXneu)
+save(neurotic_models_list,
+     file = "model_objects/interact_neurotic.Rdata")
+```
+
+## Save
+
+
+
+```{r echo=FALSE}
+
+# 
+# save(m.imm.usXrep,m.imm.usXcon, m.imm.usXneu, m.imm.usXstress, file = "model_objects/bayes_interactions_us.Rdata" )
+# save(m.imm.cmtyXrep,m.imm.cmtyXcon, m.imm.cmtyXneu, m.imm.cmtyXstress, file = "model_objects/bayes_interactions_cmty.Rdata" )
+# save(m.imm.legalXrep,m.imm.legalXcon, m.imm.legalXneu, m.imm.legalXstress, file = "model_objects/bayes_interactions_legal.Rdata" )
+# save(m.ideoXrep,m.ideoXcon, m.ideoXneu, m.ideoXstress, file = "model_objects/bayes_interactions_ideo.Rdata" )
+# save(m.partyXrep,m.partyXcon, m.partyXneu, m.partyXstress, file = "model_objects/bayes_interactions_party.Rdata" )
+# save(m.obamaXrep,m.obamaXcon, m.obamaXneu, m.obamaXstress, file = "model_objects/bayes_interactions_obama.Rdata" )
+# save(m.participXrep,m.participXcon, m.participXneu, m.participXstress, file = "model_objects/bayes_interactions_particip.Rdata" )
+# save(m.intXrep,m.intXcon, m.intXneu, m.intXstress, file = "model_objects/bayes_interactions_int.Rdata" )
+# save(m.tfrXrep,m.tfrXcon, m.tfrXneu, m.tfrXstress, file = "model_objects/bayes_interactions_tfr.Rdata" )
+# save(m.tfamXrep,m.tfamXcon, m.tfamXneu, m.tfamXstress, file = "model_objects/bayes_interactions_tfam.Rdata" )
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,72 @@
+\begin{table}[!h]
+
+\caption{\label{tab:ctrl_fd}Models for non-local students comparing pre- and post-attack outcomes (Bayesian)}
+\centering
+\fontsize{9}{11}\selectfont
+\begin{tabular}[t]{lrllrrrl}
+\toprule
+Parameter & Median & 95\% HDI & 90\% HDI & pd & ESS & rhat & Hypothesis\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: illegal immigration problem in US}}\\
+\hline
+\hspace{1em}(intercept) & -0.20 & (-0.28, -0.13) & (-0.27, -0.14) & 1.00 & 1892 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.03} & \textbf{(-0.04, 0.12)} & \textbf{(-0.04, 0.10)} & \textbf{0.80} & \textbf{5468} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.65 & (0.61, 0.69) & (0.62, 0.68) & 1.00 & 1562 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: illegal immigration problem in community}}\\
+\hline
+\hspace{1em}(intercept) & -0.13 & (-0.20, -0.05) & (-0.19, -0.06) & 1.00 & 2726 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.03} & \textbf{(-0.04, 0.11)} & \textbf{(-0.04, 0.10)} & \textbf{0.79} & \textbf{10264} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.67 & (0.63, 0.71) & (0.64, 0.70) & 1.00 & 1659 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: restrict legal immigration}}\\
+\hline
+\hspace{1em}(intercept) & 0.06 & (-0.02, 0.13) & (-0.01, 0.12) & 0.94 & 2977 & 1.00 & H1: Nativist Backlash\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{-0.12} & \textbf{(-0.19, -0.04)} & \textbf{(-0.18, -0.06)} & \textbf{1.00} & \textbf{7509} & \textbf{1.00} & \textbf{H1: Nativist Backlash}\\
+\hspace{1em}sigma & 0.69 & (0.65, 0.73) & (0.65, 0.72) & 1.00 & 1342 & 1.00 & H1: Nativist Backlash\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: party (Dem.–Rep. scale)}}\\
+\hline
+\hspace{1em}(intercept) & -0.01 & (-0.08, 0.06) & (-0.06, 0.05) & 0.57 & 238 & 1.02 & H2: Righward Shift\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{-0.03} & \textbf{(-0.07, -0.01)} & \textbf{(-0.06, -0.01)} & \textbf{0.99} & \textbf{6672} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.26 & (0.25, 0.28) & (0.25, 0.28) & 1.00 & 1865 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: ideology (Lib.–Con. scale)}}\\
+\hline
+\hspace{1em}(intercept) & 0.00 & (-0.07, 0.07) & (-0.07, 0.06) & 0.55 & 847 & 1.00 & H2: Righward Shift\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{-0.04} & \textbf{(-0.09, 0.01)} & \textbf{(-0.08, -0.00)} & \textbf{0.96} & \textbf{8214} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.42 & (0.40, 0.45) & (0.41, 0.44) & 1.00 & 1745 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: Obama approval}}\\
+\hline
+\hspace{1em}(intercept) & 0.34 & (0.26, 0.41) & (0.28, 0.40) & 1.00 & 946 & 1.00 & H2: Righward Shift\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.23} & \textbf{(0.17, 0.29)} & \textbf{(0.18, 0.28)} & \textbf{1.00} & \textbf{5560} & \textbf{1.00} & \textbf{H2: Righward Shift}\\
+\hspace{1em}sigma & 0.50 & (0.47, 0.53) & (0.47, 0.52) & 1.00 & 1857 & 1.00 & H2: Righward Shift\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: political participation}}\\
+\hline
+\hspace{1em}(intercept) & 0.09 & (0.01, 0.17) & (0.02, 0.16) & 0.99 & 2158 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{-0.04} & \textbf{(-0.12, 0.04)} & \textbf{(-0.11, 0.03)} & \textbf{0.84} & \textbf{9939} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.72 & (0.68, 0.76) & (0.68, 0.75) & 1.00 & 1563 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: interest in politics}}\\
+\hline
+\hspace{1em}(intercept) & 0.11 & (0.04, 0.19) & (0.05, 0.18) & 1.00 & 1276 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.20} & \textbf{(0.13, 0.26)} & \textbf{(0.14, 0.25)} & \textbf{1.00} & \textbf{3385} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.58 & (0.55, 0.61) & (0.55, 0.61) & 1.00 & 1564 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: discuss politics and current events with family}}\\
+\hline
+\hspace{1em}(intercept) & 0.15 & (0.08, 0.22) & (0.09, 0.21) & 1.00 & 2088 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.02} & \textbf{(-0.06, 0.09)} & \textbf{(-0.05, 0.08)} & \textbf{0.66} & \textbf{6192} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.62 & (0.59, 0.66) & (0.59, 0.65) & 1.00 & 1568 & 1.00 & H3: Political Engagement\\
+\addlinespace[0.3em]
+\multicolumn{8}{l}{\textbf{Outcome: discuss politics and current events with friends}}\\
+\hline
+\hspace{1em}(intercept) & 0.10 & (0.03, 0.18) & (0.04, 0.17) & 1.00 & 3538 & 1.00 & H3: Political Engagement\\
+\hspace{1em}\textbf{Nov 2016 - Aug 2016} & \textbf{0.26} & \textbf{(0.18, 0.33)} & \textbf{(0.20, 0.32)} & \textbf{1.00} & \textbf{9140} & \textbf{1.00} & \textbf{H3: Political Engagement}\\
+\hspace{1em}sigma & 0.68 & (0.65, 0.72) & (0.65, 0.72) & 1.00 & 1157 & 1.00 & H3: Political Engagement\\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,30 @@
+
+\begin{table}[htbp]
+   \caption{\label{tab:main_FE} Main models (frequentist)}
+   \centering
+   \begin{tabular}{lcccccccccc}
+      \tabularnewline \midrule \midrule
+      Hypothesis: & \multicolumn{3}{c}{H1: Nativist Backlash} & \multicolumn{3}{c}{H2: Righward Shift} & \multicolumn{4}{c}{H3: Political Engagement} \\ 
+      Dependent Variables: & illegal imm us & illegal imm cmty & legal imm & party    & ideology & obama    & interest & participation & talk family & talk friends\\  
+      Model:               & (1)            & (2)              & (3)       & (4)      & (5)      & (6)      & (7)      & (8)           & (9)         & (10)\\  
+      \midrule
+      \emph{Variables}\\
+      treatment            & 0.21$^{*}$     & 0.05             & 0.15      & 0.01     & 0.02     & -0.004   & 0.09     & -0.08         & 0.18$^{*}$  & 0.08\\   
+                           & (0.10)         & (0.10)           & (0.10)    & (0.05)   & (0.05)   & (0.06)   & (0.07)   & (0.06)        & (0.09)      & (0.08)\\   
+      \midrule
+      \emph{Fixed-effects}\\
+      Wave                 & Yes            & Yes              & Yes       & Yes      & Yes      & Yes      & Yes      & Yes           & Yes         & Yes\\  
+      id                   & Yes            & Yes              & Yes       & Yes      & Yes      & Yes      & Yes      & Yes           & Yes         & Yes\\  
+      \midrule
+      \emph{Fit statistics}\\
+      Observations         & 5,412          & 5,318            & 4,781     & 10,765   & 10,891   & 9,502    & 10,866   & 8,768         & 3,474       & 3,457\\  
+      Squared Correlation  & 0.732          & 0.730            & 0.743     & 0.882    & 0.830    & 0.785    & 0.734    & 0.635         & 0.751       & 0.707\\  
+      Pseudo R$^2$         & 0.471          & 0.462            & 0.478     & 0.754    & 0.625    & 0.542    & 0.467    & 0.353         & 0.485       & 0.432\\  
+      BIC                  & 25,539.8       & 25,503.5         & 23,822.0  & 31,058.4 & 35,178.9 & 32,088.5 & 40,089.8 & 39,135.4      & 15,369.1    & 15,804.8\\  
+      \midrule \midrule
+      \multicolumn{11}{l}{\emph{Clustered (Wave \& id) standard-errors in parentheses}}\\
+      \multicolumn{11}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+   \end{tabular}
+\end{table}
+
+

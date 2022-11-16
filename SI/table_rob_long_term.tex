@@ -1,0 +1,35 @@
+
+\begin{table}[htbp]
+   \centering
+   \begin{threeparttable}[b]
+      \caption{\label{tab:long_term} Long-term effects: November 2016 post-treatment observations replaced with April 2017 observations (frequentist)}
+      \begin{tabular}{lcccccccc}
+         \tabularnewline \midrule \midrule
+         Hypothesis: & \multicolumn{2}{c}{H1: Nativist Backlash} & \multicolumn{2}{c}{H2: Righward Shift} & \multicolumn{4}{c}{H3: Political Engagement} \\ 
+         Dependent Variables: & illegal imm us & illegal imm cmty & party    & ideology    & interest & participation & talk family & talk friends\\  
+         Model:               & (1)            & (2)              & (3)      & (4)         & (5)      & (6)           & (7)         & (8)\\  
+         \midrule
+         \emph{Variables}\\
+         treatment            & 0.08           & -0.06            & 0.07     & 0.13$^{**}$ & -0.05    & -0.06         & -0.03       & -0.08\\   
+                              & (0.12)         & (0.09)           & (0.05)   & (0.05)      & (0.07)   & (0.06)        & (0.08)      & (0.09)\\   
+         \midrule
+         \emph{Fixed-effects}\\
+         Wave                 & Yes            & Yes              & Yes      & Yes         & Yes      & Yes           & Yes         & Yes\\  
+         id                   & Yes            & Yes              & Yes      & Yes         & Yes      & Yes           & Yes         & Yes\\  
+         \midrule
+         \emph{Fit statistics}\\
+         Observations         & 5,396          & 5,304            & 10,748   & 10,870      & 10,838   & 8,742         & 3,451       & 3,433\\  
+         Squared Correlation  & 0.740          & 0.736            & 0.881    & 0.829       & 0.734    & 0.626         & 0.751       & 0.712\\  
+         Pseudo R$^2$         & 0.476          & 0.469            & 0.752    & 0.624       & 0.467    & 0.347         & 0.488       & 0.441\\  
+         BIC                  & 25,991.1       & 25,861.8         & 31,367.1 & 35,427.8    & 40,225.5 & 39,332.1      & 15,464.0    & 15,836.2\\  
+         \midrule \midrule
+         \multicolumn{9}{l}{\emph{Clustered (Wave \& id) standard-errors in parentheses}}\\
+         \multicolumn{9}{l}{\emph{Signif. Codes: ***: 0.01, **: 0.05, *: 0.1}}\\
+      \end{tabular}
+      
+      \begin{tablenotes}\item Note: The Obama approval and legal immigration questions were not asked in this survey wave.
+      \end{tablenotes}
+   \end{threeparttable}
+\end{table}
+
+
